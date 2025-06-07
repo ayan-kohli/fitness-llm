@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <title>Document</title>
+</head>
+<body> 
+    <h1>Test Webpage!!</h1>
+    <form action="{{ url_for('create') }}" method="post">
+        <label for="height">Enter your height in inches: </label>
+        <input type="text" id="height" name="height" placeholder="height" required="required">
+        <label for="weight">Enter your weight in pounds: </label>
+        <input type="text" id="weight" name="weight" placeholder="weight" required="required">
+        <label for="plan">Enter your plan: </label>
+        <select id="plan" name="plan" required="required">
+            <option value="Dirty Bulk">Dirty Bulk</option>
+            <option value="Lean Bulk">Lean Bulk</option>
+            <option value="Standard Cut">Standard Cut</option>
+            <option value="Aggressive Cut">Aggressive Cut</option>
+            <option value="Body Recomposition">Body Recomposition</option>
+            <option value="Maintain">Maintain</option>
+        </select>
+        <label for="workout">What muscles/muscle groups would you like to target today?</label>
+        <input type="text" id="workout" name="workout" placeholder="workout" required="required">
+        <button type="submit">Enter</button>
+    </form>
+</body>
+</html>
