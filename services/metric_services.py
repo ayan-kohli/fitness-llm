@@ -1,6 +1,6 @@
 from configs.config import mongo_client
 from pymongo import DESCENDING
-from helper import generic_db_error_handling, get_user_query
+from helper import generic_db_error_handling, get_user_query, logger
 
 fitsense_db = mongo_client.fitsense
 metrics_info = fitsense_db.metrics_info
@@ -20,21 +20,37 @@ def create_metric(user_id, timestamp, height, weight):
         return None, False
 
 def read_latest_height(user_id):
-    result, success = generic_db_error_handling(metrics_info.find, get_user_query(user_id), 
-                                                sort=[("Height Recorded At", DESCENDING)], 
+    cursor, success = generic_db_error_handling(metrics_info.find, get_user_query(user_id), 
+                                                sort=[("Recorded At", DESCENDING)], 
                                                 limit=1)
-    if result and success:
-        return result, success
-    else:
+    if cursor and success:
+        try:
+            latest_doc = next(cursor, None)
+            if latest_doc:
+                return latest_doc, True 
+            else:
+                return None, False 
+        except Exception as e:
+            logger.error(f"Error processing cursor in read_latest_height: {e}", exc_info=True)
+            return None, False
+    else: 
         return None, False
 
 def read_latest_weight(user_id):
-    result, success = generic_db_error_handling(metrics_info.find, get_user_query(user_id), 
-                                                sort=[("Weight Recorded At", DESCENDING)], 
+    cursor, success = generic_db_error_handling(metrics_info.find, get_user_query(user_id), 
+                                                sort=[("Recorded At", DESCENDING)], 
                                                 limit=1)
-    if result and success:
-        return result, success
-    else:
+    if cursor and success:
+        try:
+            latest_doc = next(cursor, None)
+            if latest_doc:
+                return latest_doc, True 
+            else:
+                return None, False 
+        except Exception as e:
+            logger.error(f"Error processing cursor in read_latest_weight: {e}", exc_info=True)
+            return None, False
+    else: 
         return None, False
     
 def check_update_result(result):
