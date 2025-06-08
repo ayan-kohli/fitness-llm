@@ -1,6 +1,6 @@
 from configs.config import mongo_client
 from uuid import uuid4
-from helper import generic_db_error_handling, get_user_query
+from helper import *
 
 fitsense_db = mongo_client.fitsense
 user_info = fitsense_db.user_info
@@ -31,9 +31,6 @@ def read_user(user_id):
         return result, success
     else:
         return None, False
-    
-def check_update_result(result):
-    return result.modified_count > 0
 
 def update_username(user_id, new_user, timestamp):
     new_value = {"$set": {

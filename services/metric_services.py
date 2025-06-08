@@ -1,6 +1,6 @@
 from configs.config import mongo_client
 from pymongo import DESCENDING
-from helper import generic_db_error_handling, get_user_query, logger
+from helper import *
 
 fitsense_db = mongo_client.fitsense
 metrics_info = fitsense_db.metrics_info
@@ -52,9 +52,6 @@ def read_latest_weight(user_id):
             return None, False
     else: 
         return None, False
-    
-def check_update_result(result):
-    return result.modified_count > 0
 
 def update_height(user_id, new_height, timestamp):
     result, success = read_latest_weight(user_id)

@@ -17,3 +17,9 @@ def generic_db_error_handling(db_callable, *args, **kwargs):
     
 def get_user_query(user_id):
     return {"user_id": user_id}
+
+def check_update_result(result):
+    return result.modified_count > 0
+
+def get_workout_query(workout_id):
+    return {"_id": workout_id}
