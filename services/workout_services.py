@@ -1,6 +1,6 @@
 from configs.config import mongo_client
 from pymongo import DESCENDING
-from helper import *
+from .helper import *
 
 fitsense_db = mongo_client.fitsense
 workout_queries = fitsense_db.workout_queries

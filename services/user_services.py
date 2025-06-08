@@ -1,6 +1,6 @@
 from configs.config import mongo_client
 from uuid import uuid4
-from helper import *
+from .helper import *
 
 fitsense_db = mongo_client.fitsense
 user_info = fitsense_db.user_info
@@ -55,7 +55,7 @@ def update_password(user_id, new_hash, timestamp):
         return False, False
 
 def update_activity(user_id, new_level, timestamp):
-    if new_level not in ["Lightly Active", "Moderately Active", "Active", "Extremely Active"]:
+    if new_level not in ["Sedentary", "Lightly Active", "Active", "Extremely Active"]:
         raise ValueError("Invalid activity level")
     
     new_value = {"$set": {
