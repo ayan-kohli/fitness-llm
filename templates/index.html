@@ -8,7 +8,7 @@
 </head>
 <body> 
     <h1>Test Webpage!!</h1>
-    <form action="{{ url_for('create') }}" method="post">
+    <form action="{{ url_for('routes.create') }}" method="post">
         <label for="height">Enter your height in inches: </label>
         <input type="text" id="height" name="height" placeholder="height" required="required">
         <label for="weight">Enter your weight in pounds: </label>
