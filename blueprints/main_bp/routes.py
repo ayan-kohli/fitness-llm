@@ -186,3 +186,27 @@ def update_user(user_id):
         return jsonify({"updated_fields": updated_fields}), 200
      else:
         return jsonify({"message": "No valid fields provided or no changes detected"}), 200 
+
+@routes_bp.route("/users/<user_id>", methods=["DELETE"])
+def delete_user(user_id):
+	result, success = user_services.read_user(user_id)
+	if not success or result is None:
+		return jsonify({"Database error": "User not found"}), 404
+
+	result, success = user_services.delete_user(user_id)
+	if not success:
+		return jsonify({"Database error": "Could not delete user"}), 500
+
+	result, success = metric_services.delete_user_metrics(user_id)
+	if not success:
+		logger.error(f"Failed to delete metrics for user {user_id}. User record might be deleted, but metrics remain.")
+		return jsonify({"Database error": "Could not delete metrics"}), 500
+
+	result, success = workout_services.delete_user_workouts(user_id)
+	if not success:
+		logger.error(f"Failed to delete workouts for user {user_id}. User record might be deleted, but workouts remain.")
+		return jsonify({"Database error": "Could not delete workouts"}), 500
+
+	return jsonify({}), 204
+
+ 
