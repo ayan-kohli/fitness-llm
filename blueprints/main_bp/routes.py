@@ -106,3 +106,18 @@ def create():
 
           
       return render_template("index.html")
+
+@routes_bp.route("/users/<user_id>", methods=["GET"])
+def read_user(user_id):
+     result, success = user_services.read_user(user_id)
+     if result and success:
+          if "_id" in result:
+               result["_id"] = str(result["_id"])
+          if "Date Created" in result and result["Date Created"] is not None and isinstance(result["Date Created"], datetime):
+               result["Date Created"] = result["Date Created"].isoformat() 
+          if "Updated At" in result and result["Updated At"] is not None and isinstance(result["Updated At"], datetime):
+               result["Updated At"] = result["Updated At"].isoformat() 
+          return jsonify({"User Info": result}), 200
+     else:
+          return jsonify({"Database error": "User not found"}), 404
+
