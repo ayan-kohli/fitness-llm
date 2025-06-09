@@ -56,6 +56,7 @@ def update_password(user_id, new_hash, timestamp):
 
 def update_activity(user_id, new_level, timestamp):
     if new_level not in ["Sedentary", "Lightly Active", "Active", "Extremely Active"]:
+        logger.error("Invalid activity", exc_info=True)
         raise ValueError("Invalid activity level")
     
     new_value = {"$set": {

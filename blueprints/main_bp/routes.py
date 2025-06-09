@@ -5,6 +5,7 @@ from services import user_services, metric_services, workout_services
 from services.helper import logger
 import json
 from ast import literal_eval
+from bcrypt import gensalt, hashpw
 
 routes_bp = Blueprint("routes", __name__)
 
@@ -121,3 +122,67 @@ def read_user(user_id):
      else:
           return jsonify({"Database error": "User not found"}), 404
 
+@routes_bp.route("/users/<user_id>", methods=["PUT"])
+def update_user(user_id):
+     try:
+          data = request.json
+          if not data:
+               return jsonify({"Client-side error": "Invalid or empty JSON data"}), 400
+     except json.JSONDecodeError as e:
+          logger.error(f"JSON decode error: {e}", exc_info=True)
+          return jsonify({"Client-side error when inputting JSON data": str(e)}), 400
+
+     result, success = user_services.read_user(user_id)
+     if not success or result is None:
+          return jsonify({"Database error": "User not found"}), 404
+
+     updated_fields = {}
+     timestamp = datetime.now()
+
+     if "username" in data:
+        new_username = data["username"]
+        result, success = user_services.update_username(user_id, new_username, timestamp)
+        if result and success:
+             updated_fields["username"] = new_username
+        elif success and not result:
+          pass
+        else:
+             return jsonify({"Server-side error": "Could not process username"}), 500
+     
+     if "activity" in data:
+        new_activity = data["activity"]
+        result, success = user_services.update_activity(user_id, new_activity, timestamp)
+        if result and success:
+             updated_fields["activity"] = new_activity
+        elif success and not result:
+          pass
+        else:
+             return jsonify({"Server-side error": "Could not process activity"}), 500
+     
+     if "plan" in data:
+        new_plan = data["plan"]
+        result, success = user_services.update_plan(user_id, new_plan, timestamp)
+        if result and success:
+             updated_fields["plan"] = new_plan
+        elif success and not result:
+          pass
+        else:
+             return jsonify({"Server-side error": "Could not process plan"}), 500
+     
+     if "password" in data:
+        new_password = data["password"]
+        hash_salt = gensalt()
+        pass_hash = str(hashpw(new_password, hash_salt))
+
+        result, success = user_services.update_password(user_id, pass_hash, timestamp)
+        if result and success:
+             updated_fields["password"] = pass_hash
+        elif success and not result:
+          pass
+        else:
+             return jsonify({"Server-side error": "Could not process password"}), 500
+     
+     if updated_fields: 
+        return jsonify({"updated_fields": updated_fields}), 200
+     else:
+        return jsonify({"message": "No valid fields provided or no changes detected"}), 200 
