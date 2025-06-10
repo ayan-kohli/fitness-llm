@@ -17,7 +17,7 @@ def create_workout():
                 Based on their height, weight, and current plan, please provide them a workout routine for the day.
                 Respond only with JSON using this format (assume completion for all generated exercises, and 
                 assume X = # of sets, Y and Z represent start and end point for range of reps):
-                {"exercise1": [sets, min_reps, max_reps]}
+                {{"exercise1": [X, Y, Z]}}
                 """
                 
     try:

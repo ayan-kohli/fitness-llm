@@ -72,7 +72,7 @@ def create():
                          "Rep Range": [0, 0]
                     }
                     try:
-                         parsed_setreps = literal_eval(v.strip())
+                         parsed_setreps = v
 
                          if isinstance(parsed_setreps, list) and len(parsed_setreps) == 3:
                               try: 
