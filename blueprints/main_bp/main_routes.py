@@ -6,6 +6,8 @@ from services.helper import logger
 import json
 from ast import literal_eval
 from bcrypt import gensalt, hashpw
+from blueprints.llm_bp.llm_routes import create_workout
+import requests
 
 routes_bp = Blueprint("routes", __name__)
 
@@ -38,30 +40,24 @@ def create():
           else:
                return jsonify({"Server-side error": "Failed when creating new user"}), 500
           
-          llm_prompt = f"""You are a seasoned fitness trainer with 20+ years of experience.
-                                         A client comes to you with the following body metrics:
-                                         Height = {height}, Weight = {weight}, Plan = {plan}, Activity Level = {activity}
-                                         Today, they want to target the following muscle groups: {workout}
-                                         Based on their height, weight, and current plan, please provide them a workout routine for the day.
-                                         Respond only with JSON using this format (assume completion for all generated exercises, and 
-                                         assume X = # of sets, Y and Z represent start and end point for range of reps):
-                                         '{{'exercise1:' '[X, Y, Z]'}}'
-                                         """
           try:
-               chat_completion = groq_client.chat.completions.create(
-                    messages=[
-                         {
-                              "role": "user",
-                              "content": llm_prompt
-                         }
-                    ], 
-                    model="llama-3.3-70b-versatile",
-                    response_format={"type": "json_object"}
-               )
-               response = chat_completion.choices[0].message.content
-          except Exception as e:
+               llm_response = requests.post(url="http://127.0.0.1:5000/generate", json = {
+                    "height": height,
+                    "weight": weight,
+                    "plan": plan,
+                    "workout": workout,
+                    "activity": activity
+               })
+               llm_response.raise_for_status()
+               response_data = llm_response.json()
+               response = response_data.get("llm_response")
+               llm_prompt = response_data.get("llm_prompt")       
+          except requests.RequestException as e:
                logger.error(f"LLM error {e}", exc_info=True)
-               return jsonify({"LLM API Error": str(e)}), 500
+               if e.response is not None:
+                    return jsonify({"LLM API Error": f"Request failed with status {e.response.status_code}: {e.response.text}"}), e.response.status_code
+               else:
+                    return jsonify({"LLM API Error": f"Connection failed: {str(e)}"}), 500
 
           try:
                workout_dict = json.loads(response)
@@ -79,18 +75,30 @@ def create():
                          parsed_setreps = literal_eval(v.strip())
 
                          if isinstance(parsed_setreps, list) and len(parsed_setreps) == 3:
-                              to_enter["Exercise"] = k
-                              to_enter["Sets"] = parsed_setreps[0]
-                              to_enter["Rep Range"] = [parsed_setreps[1], parsed_setreps[2]]
+                              try: 
+                                   sets = int(parsed_setreps[0])
+                                   rep_min = int(parsed_setreps[1])
+                                   rep_max = int(parsed_setreps[2])
+
+                                   to_enter["Exercise"] = k
+                                   to_enter["Sets"] = sets
+                                   to_enter["Rep Range"] = [rep_min, rep_max]
+                              except ValueError as ve:
+                                   logger.error(f"LLM output values were not convertible to int for exercise {k}: {v}. Error: {ve}", exc_info=True)
+                                   return jsonify({"LLM Parsing Error": "AI did not return numeric values"}), 500
                          else:
                               logger.error(f"LLM returned unintended list when formatting exercise {k}: {v}. Parsed: {parsed_setreps}")
                               return jsonify({"LLM API Error": "Failed to parse exercises"}), 500
-                    except Exception as e:
+                    except (ValueError, SyntaxError) as e:
                          logger.error(f"Error {e} occurred when parsing LLM output")
-                         return jsonify({"Server-side error": str(e)}), 500
+                         return jsonify({"LLM Parsing Error": "Could not parse exercises"}), 500
+                    except Exception as e:
+                         logger.error(f"Unexpected error {e} when parsing LLM", exc_info=True)
+                         return jsonify({"Server-side error": "An unexpected error occurred when parsing exercises"}), 500
+
                     workout_doc.append(to_enter)
                
-               workout_result, success = workout_services.create_workout(user_id, datetime.now(), 
+               workout_result, success = workout_services.create_workout(user_id, curr_time, 
                                                                      workout, llm_prompt, response, workout_doc, "generated", None)
                if success:
                     workout_id = workout_result["_id"]

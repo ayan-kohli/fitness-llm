@@ -1,5 +1,5 @@
-from flask import Flask, render_template, jsonify, request, redirect
-from blueprints.main_bp.routes import routes_bp
+from flask import Flask
+from blueprints.main_bp.main_routes import routes_bp
 
 app = Flask(__name__)
 app.register_blueprint(routes_bp)
