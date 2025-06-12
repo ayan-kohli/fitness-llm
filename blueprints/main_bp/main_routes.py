@@ -17,7 +17,7 @@ def create():
       if request.method == "POST":
           try:
                height = int(request.form.get("height"))
-               weight = float(request.form.get("weight"))
+               weight = int(request.form.get("weight"))
                plan = request.form.get("plan")
                if plan not in ["Dirty Bulk", "Lean Bulk", "Standard Cut", "Aggressive Cut", "Body Recomposition","Maintain"]:
                     raise ValueError("Invalid plan type.")
