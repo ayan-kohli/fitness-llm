@@ -21,10 +21,10 @@ print("Now, enter your weight (in pounds)")
 
 def weight_input():
     try:
-        weight = int(input("> "))
+        weight = float(input("> "))
         while weight > 1000 or weight < 80:
             print("Unrealistic weight - please try again!")
-            weight = int(input("> "))
+            weight = float(input("> "))
     except ValueError as e:
         print("Your weight doesn't seem right - are you sure it's an integer represented in pounds?")
         weight_input()
@@ -57,19 +57,56 @@ payload = {
     "workout": workout
 }
 
-try:
-    response = requests.post(FLASK_URL, data=payload)
-except requests.exceptions.ConnectionError as e:
-    print(f"Encountered a connection error: {e}")
-    exit(0)
-except Exception as e:
-    print(f"Encountered an unexpected error: {e}")
-    exit(0)
+def generic_request_handling(req_callable, *args, **kwargs):
+    try:
+        response = req_callable(*args, **kwargs)
+        return response
+    except requests.exceptions.ConnectionError as e:
+        print(f"Encountered a connection error: {e}")
+        exit(0)
+    except Exception as e:
+        print(f"Encountered an unexpected error: {e}")
+        exit(0)
+        
+def generic_response_handling(response): 
+    try:
+        if response.status_code == 204:
+            return {}, response.status_code 
 
-try:
-    response_data = response.json()
-except json.JSONDecodeError:
-    print("Error when parsing server data.")
-    exit(0)
+        response_data = response.json()
+        return response_data, response.status_code 
 
-print(f"Response: {json.dumps(response_data, indent=2)}")
+    except json.JSONDecodeError:
+        print("Error: Server returned non-JSON data or empty/malformed JSON.")
+        print(f"Raw response content: {response.text}") 
+        return {"error": "JSON decoding failed on client"}, response.status_code 
+    except Exception as e: 
+        print(f"An unexpected error occurred during response handling: {e}")
+        return {"error": "Unexpected client-side response error"}, response.status_code
+
+response = generic_request_handling(requests.post, FLASK_URL, data=payload)
+response_data, status_code = generic_response_handling(response)
+
+if status_code == 201:
+    user_id = response_data.get("user_id") 
+    print(f"User and workout created successfully! User ID: {user_id}")
+    print(f"Workout: {json.dumps(response_data.get('workout', {}), indent=2)}")
+elif status_code == 400:
+    print(f"Client-side input error: {json.dumps(response_data, indent=2)}")
+elif status_code == 500:
+    print(f"Server-side error: {json.dumps(response_data, indent=2)}")
+else:
+    print(f"Unhandled status code {status_code}: {json.dumps(response_data, indent=2)}")
+
+while True:
+    print("Current MENU options: (1) Read Current User (2) Quit")
+    choice = input("> ")
+    if choice == "1":
+        user_read = generic_request_handling(requests.get, FLASK_URL + f"users/{user_id}")
+        response_data = generic_response_handling(user_read)
+        print(response_data)
+    elif choice == "2":
+        print("Exiting app...")
+        exit(0)
+    else:
+        print("Invalid choice. Try again! ")

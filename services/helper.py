@@ -9,10 +9,10 @@ def generic_db_error_handling(db_callable, *args, **kwargs):
         operation_result = db_callable(*args, **kwargs)
         return operation_result, True
     except PyMongoError as pye:
-        logger.error(f"Database error {pye} when trying to create user", exc_info=True)
+        logger.error(f"Database error {str(pye)} when trying to create user", exc_info=True)
         return None, False 
     except Exception as e:
-        logger.critical(f"Unexpected error {e} when creating user")
+        logger.critical(f"Unexpected error {str(e)} when creating user")
         return None, False  
     
 def get_user_query(user_id):

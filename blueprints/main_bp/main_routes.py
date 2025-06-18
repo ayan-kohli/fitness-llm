@@ -17,7 +17,7 @@ def create():
       if request.method == "POST":
           try:
                height = int(request.form.get("height"))
-               weight = int(request.form.get("weight"))
+               weight = float(request.form.get("weight"))
                plan = request.form.get("plan")
                if plan not in ["Dirty Bulk", "Lean Bulk", "Standard Cut", "Aggressive Cut", "Body Recomposition","Maintain"]:
                     raise ValueError("Invalid plan type.")
@@ -102,7 +102,7 @@ def create():
                                                                      workout, llm_prompt, response, workout_doc, "generated", None)
                if success:
                     workout_id = workout_result["_id"]
-                    return jsonify({"Success": "Database input success!"}), 200
+                    return jsonify({"message": "Workout created successfully", "user_id": user_id, "workout": str(workout_id)}), 201
                else:
                     return jsonify({"Server-side error": "Failed when creating workout"}), 500
                
