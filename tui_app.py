@@ -84,13 +84,39 @@ def generic_response_handling(response):
         print(f"An unexpected error occurred during response handling: {e}")
         return {"error": "Unexpected client-side response error"}, response.status_code
 
+def format_workout_display(workout_details):
+    if not workout_details:
+        return "No workout details provided."
+
+    display_str = "\n--- Generated Workout Routine ---\n"
+    for i, exercise in enumerate(workout_details):
+        exercise_name = exercise.get("Exercise", "N/A")
+        sets = exercise.get("Sets", "N/A")
+        rep_range = exercise.get("Rep Range", "N/A")
+
+        if isinstance(rep_range, list) and len(rep_range) == 2:
+            reps_str = f"{rep_range[0]}-{rep_range[1]} reps"
+        else:
+            reps_str = f"{rep_range} reps" 
+
+        display_str += f"{i+1}. {exercise_name}: {sets} sets of {reps_str}\n"
+    display_str += "---------------------------------\n"
+    return display_str
+
 response = generic_request_handling(requests.post, FLASK_URL, data=payload)
 response_data, status_code = generic_response_handling(response)
 
 if status_code == 201:
-    user_id = response_data.get("user_id") 
-    print(f"User and workout created successfully! User ID: {user_id}")
-    print(f"Workout: {json.dumps(response_data.get('workout', {}), indent=2)}")
+    user_id = response_data.get("user_id") # Get user_id if needed for menu loop later
+    workout_details = response_data.get("workout_details") # Get the workout_details list
+
+    print(f"\nMessage: {response_data.get('message', 'Success')}")
+    if user_id:
+        print(f"Your User ID is: {user_id}")
+    if workout_details:
+        print(format_workout_display(workout_details))
+    else:
+        print("No workout details returned.")
 elif status_code == 400:
     print(f"Client-side input error: {json.dumps(response_data, indent=2)}")
 elif status_code == 500:
@@ -104,7 +130,10 @@ while True:
     if choice == "1":
         user_read = generic_request_handling(requests.get, FLASK_URL + f"users/{user_id}")
         response_data = generic_response_handling(user_read)
-        print(response_data)
+        user_doc = response_data[0]["User Info"]
+        print("--- DETAILS FOR USER " + user_id + " ---")
+        for k, v in user_doc.items():
+            print(f"{k}: {v}")
     elif choice == "2":
         print("Exiting app...")
         exit(0)

@@ -102,7 +102,7 @@ def create():
                                                                      workout, llm_prompt, response, workout_doc, "generated", None)
                if success:
                     workout_id = workout_result["_id"]
-                    return jsonify({"message": "Workout created successfully", "user_id": user_id, "workout": str(workout_id)}), 201
+                    return jsonify({"message": "Workout created successfully", "user_id": user_id, "workout_id": str(workout_id), "workout_details": workout_doc}), 201
                else:
                     return jsonify({"Server-side error": "Failed when creating workout"}), 500
                
