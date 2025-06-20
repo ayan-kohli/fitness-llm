@@ -100,6 +100,7 @@ def format_workout_display(workout_details):
             reps_str = f"{rep_range} reps" 
 
         display_str += f"{i+1}. {exercise_name}: {sets} sets of {reps_str}\n"
+        
     display_str += "---------------------------------\n"
     return display_str
 

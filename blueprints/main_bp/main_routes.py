@@ -3,11 +3,11 @@ from configs.config import groq_client
 from datetime import datetime
 from services import user_services, metric_services, workout_services
 from services.helper import logger
+from services.llm_processor import generate_workout_llm_output
 import json
 from ast import literal_eval
 from bcrypt import gensalt, hashpw
 from blueprints.llm_bp.llm_routes import create_workout
-import requests
 
 routes_bp = Blueprint("routes", __name__)
 
@@ -39,26 +39,11 @@ def create():
                     return jsonify({"Server-side error": "Failed when creating user metrics"}), 500
           else:
                return jsonify({"Server-side error": "Failed when creating new user"}), 500
-          
-          try:
-               llm_response = requests.post(url="http://127.0.0.1:5000/generate", json = {
-                    "height": height,
-                    "weight": weight,
-                    "plan": plan,
-                    "workout": workout,
-                    "activity": activity
-               })
-               llm_response.raise_for_status()
-               response_data = llm_response.json()
-               response = response_data.get("llm_response")
-               llm_prompt = response_data.get("llm_prompt")       
-          except requests.RequestException as e:
-               logger.error(f"LLM error {e}", exc_info=True)
-               if e.response is not None:
-                    return jsonify({"LLM API Error": f"Request failed with status {e.response.status_code}: {e.response.text}"}), e.response.status_code
-               else:
-                    return jsonify({"LLM API Error": f"Connection failed: {str(e)}"}), 500
 
+          response, llm_prompt = generate_workout_llm_output(height, weight, plan, workout, activity)
+          if not response:
+               return jsonify({"Server-side error": "Failed to generate workout from AI"}), 500
+          
           try:
                workout_dict = json.loads(response)
                if "error" in workout_dict:
