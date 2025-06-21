@@ -1,4 +1,3 @@
-# db_init.py
 from configs.config import get_db_connection
 import logging
 from psycopg2 import Error as Psycopg2Error
