@@ -73,7 +73,7 @@ def create_tables():
             instructions TEXT,
             video_url TEXT,
             custom BOOLEAN NOT NULL,
-            user_id UUID REFERENCES users(user_id) ON DELETE SET NULL,
+            user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
             CONSTRAINT custom_then_user_id 
                 CHECK ((NOT custom) OR (user_id IS NOT NULL))
