@@ -66,8 +66,8 @@ def create_tables():
         CREATE TABLE IF NOT EXISTS exercises (
             exercise_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             exercise_name VARCHAR(255) UNIQUE,
-            primary_muscle_group VARCHAR(255) NOT NULL,
-            secondary_muscle_group VARCHAR(255), 
+            primary_muscle_group VARCHAR(255)[] NOT NULL,
+            secondary_muscle_group VARCHAR(255)[], 
             equipment VARCHAR(255) NOT NULL,
             difficulty VARCHAR(100),
             instructions TEXT,
