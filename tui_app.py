@@ -158,7 +158,7 @@ def _get_exercise_data(is_custom_bool):
 def create_user_and_initial_workout():
     global current_user_id
     print("\n--- Create New User & Generate Initial Workout ---")
-    username, password, height, weight, plan, activity, workout_target = _get_user_info_input()
+    username, password, height, weight, plan, activity, _ = _get_user_info_input()
 
     payload = {
         "username": username,
@@ -166,30 +166,44 @@ def create_user_and_initial_workout():
         "height": height,
         "weight": weight,
         "plan": plan,
-        "activity": activity,
-        "workout": workout_target
+        "activity": activity
     }
 
     response = generic_request_handling(requests.post, FLASK_URL, data_payload=payload)
     response_data, status_code = generic_response_handling(response)
 
-    if status_code == 201:
+    if status_code == 201 and isinstance(response_data, dict):
         current_user_id = response_data.get("user_id")
-        display_response(response_data, status_code, "User and initial workout created successfully!")
+        display_response(response_data, status_code, "User created successfully!")
+        muscle_groups = input("Enter muscle groups to target for initial workout (comma-separated): ").strip()
+        workout_list = [mg.strip() for mg in muscle_groups.split(",") if mg.strip()]
+        rag_payload = {"user_id": current_user_id, "workout": workout_list}
+        rag_response = generic_request_handling(requests.post, FLASK_URL + "generate", json_payload=rag_payload)
+        rag_data, rag_status = generic_response_handling(rag_response)
+        if isinstance(rag_data, dict) and rag_status == 200 and rag_data.get("llm_response"):
+            print("\n--- AI-Generated Initial Workout ---")
+            print(rag_data["llm_response"])
+            print("\n--- LLM Prompt Used ---")
+            print(rag_data["llm_prompt"])
+        else:
+            print("Failed to generate initial workout with AI.")
     else:
-        display_response(response_data, status_code, "Failed to create user or initial workout.")
+        display_response(response_data, status_code, "Failed to create user.")
 
 def read_user_profile(user_id_to_read=None):
     if user_id_to_read is None:
         user_id_to_read = current_user_id
         if not user_id_to_read:
             print("No user selected. Please create or select a user first.")
-            return
+            return {}
 
     print(f"\n--- Reading User Profile for ID: {user_id_to_read} ---")
     response = generic_request_handling(requests.get, FLASK_URL + f"users/{user_id_to_read}")
     response_data, status_code = generic_response_handling(response)
-    display_response(response_data, status_code, "User profile retrieved.")
+    if isinstance(response_data, dict):
+        display_response(response_data, status_code, "User profile retrieved.")
+    else:
+        print("Failed to retrieve user profile.")
     return response_data, status_code
 
 def update_user_profile():
@@ -275,15 +289,21 @@ def manage_metrics():
             data_w, status_w = generic_response_handling(response_w)
             
             print("\n--- Latest Metrics ---")
-            if status_h == 200 and data_h.get("User Info"):
-                 print(f"Height: {data_h['User Info'].get('height', 'N/A')} recorded at {data_h['User Info'].get('recorded_at', 'N/A')}")
+            if status_h == 200 and isinstance(data_h, dict) and data_h.get("User Info"):
+                print(f"Height: {data_h['User Info'].get('height', 'N/A')} recorded at {data_h['User Info'].get('recorded_at', 'N/A')}")
             else:
-                print(f"Height: Not found ({data_h.get('error', 'N/A')})")
+                if isinstance(data_h, dict):
+                    print(f"Height: Not found ({data_h.get('error', 'N/A')})")
+                else:
+                    print("Height: Not found (unexpected response type)")
             
-            if status_w == 200 and data_w.get("User Info"):
-                 print(f"Weight: {data_w['User Info'].get('weight', 'N/A')} recorded at {data_w['User Info'].get('recorded_at', 'N/A')}")
+            if status_w == 200 and isinstance(data_w, dict) and data_w.get("User Info"):
+                print(f"Weight: {data_w['User Info'].get('weight', 'N/A')} recorded at {data_w['User Info'].get('recorded_at', 'N/A')}")
             else:
-                print(f"Weight: Not found ({data_w.get('error', 'N/A')})")
+                if isinstance(data_w, dict):
+                    print(f"Weight: Not found ({data_w.get('error', 'N/A')})")
+                else:
+                    print("Weight: Not found (unexpected response type)")
 
         elif choice == '5':
             confirm = input(f"Delete ALL metrics for user {current_user_id[:8]}...? (yes/no): ").strip().lower()
@@ -319,52 +339,29 @@ def manage_workouts():
             if not current_user_id:
                 print("No user selected. Please create or select a user first.")
                 return
-            
-            workout_target = input("What muscle groups are you looking to target today? ").strip()
-            response_h = generic_request_handling(requests.get, FLASK_URL + f"metrics/height/latest/{current_user_id}")
-            data_h, status_h = generic_response_handling(response_h)
-            response_w = generic_request_handling(requests.get, FLASK_URL + f"metrics/weight/latest/{current_user_id}") 
-            data_w, status_w = generic_response_handling(response_w)
-            
-            if status_h == 200 and data_h.get("User Info"):
-                 h = data_h['User Info'].get('height', 'N/A')
+            muscle_groups = input("Enter muscle groups to target (comma-separated): ").strip()
+            workout_list = [mg.strip() for mg in muscle_groups.split(",") if mg.strip()]
+            rag_payload = {"user_id": current_user_id, "workout": workout_list}
+            rag_response = generic_request_handling(requests.post, FLASK_URL + "generate", json_payload=rag_payload)
+            rag_data, rag_status = generic_response_handling(rag_response)
+            if isinstance(rag_data, dict) and rag_status == 200 and rag_data.get("llm_response"):
+                print("\n--- AI-Generated Workout ---")
+                print(rag_data["llm_response"])
+                print("\n--- LLM Prompt Used ---")
+                print(rag_data["llm_prompt"])
             else:
-                print(f"Height: Not found ({data_h.get('error', 'N/A')})")
-            
-            if status_w == 200 and data_w.get("User Info"):
-                 w = data_w['User Info'].get('weight', 'N/A')
-            else:
-                print(f"Weight: Not found ({data_w.get('error', 'N/A')})")
-            
-            user_data = read_user_profile(current_user_id).get("User Info")
-            p = user_data.get("plan")
-            a = user_data.get("activity")
-            
-            _, _, h, w, p, a, _ = _get_user_info_input() 
-
-            payload = {
-                "height": h, "weight": w, "plan": p,
-                "activity": a, "workout": workout_target
-            }
-            response = generic_request_handling(requests.post, FLASK_URL + f"workouts/generate/{current_user_id}", json_payload=payload) 
-            response_data, status_code = generic_response_handling(response)
-
-            if status_code == 201: 
-                display_response(response_data, status_code, "Workout generated and stored successfully!")
-            else:
-                display_response(response_data, status_code, "Failed to generate and store workout.")
-
+                print("Failed to generate workout with AI.")
         elif choice == '2':
             response = generic_request_handling(requests.get, FLASK_URL + f"workouts/latest/{current_user_id}") 
             response_data, status_code = generic_response_handling(response)
-            if status_code == 200 and response_data.get("parsed_workout"):
+            if isinstance(response_data, dict) and status_code == 200 and response_data.get("parsed_workout"):
                 print(format_workout_display(response_data["parsed_workout"]))
             else:
                 display_response(response_data, status_code, "No latest workout found.")
         elif choice == '3':
             response = generic_request_handling(requests.get, FLASK_URL + f"workouts/user/{current_user_id}") 
             response_data, status_code = generic_response_handling(response)
-            if status_code == 200 and response_data:
+            if isinstance(response_data, list) and status_code == 200 and response_data:
                 for i, workout in enumerate(response_data):
                     print(f"\n--- Workout {i+1} (ID: {workout.get('workout_id', 'N/A')}) ---")
                     if workout.get("parsed_workout"):
@@ -377,7 +374,7 @@ def manage_workouts():
             workout_id = input("Enter Workout ID to view: ").strip()
             response = generic_request_handling(requests.get, FLASK_URL + f"workouts/{workout_id}") 
             response_data, status_code = generic_response_handling(response)
-            if status_code == 200 and response_data.get("parsed_workout"):
+            if isinstance(response_data, dict) and status_code == 200 and response_data.get("parsed_workout"):
                 print(format_workout_display(response_data["parsed_workout"]))
             else:
                 display_response(response_data, status_code, "Workout not found.")

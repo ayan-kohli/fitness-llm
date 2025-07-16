@@ -15,7 +15,10 @@ def create_user(timestamp, activity, plan, username="", passhash=""):
                 RETURNING user_id;
                 """
                 cur.execute(insert_sql, (user_id, username, passhash, timestamp, None, activity, plan))
-                created_user_id = cur.fetchone()[0]
+                created_user_id = cur.fetchone()
+                if created_user_id is None:
+                    return None, False
+                created_user_id = created_user_id[0]
                 conn.commit()
                 return {"user_id": str(created_user_id)}, True
     except Psycopg2Error as e:
@@ -31,17 +34,17 @@ def read_user(user_id):
                 select_sql = "SELECT user_id, username, password_hash, created_at, updated_at, activity_level, plan FROM users WHERE user_id = %s;"
                 cur.execute(select_sql, (user_id,))
                 user_data = cur.fetchone()
-                if user_data:
-                    columns = [desc[0] for desc in cur.description]
-                    user_dict = dict(zip(columns, user_data))
-                    if 'user_id' in user_dict and isinstance(user_dict['user_id'], uuid.UUID):
-                        user_dict['user_id'] = str(user_dict['user_id'])
-                    if 'created_at' in user_dict and isinstance(user_dict['created_at'], datetime):
-                        user_dict['created_at'] = user_dict['created_at'].isoformat()
-                    if 'updated_at' in user_dict and isinstance(user_dict['updated_at'], datetime):
-                        user_dict['updated_at'] = user_dict['updated_at'].isoformat()
-                    return user_dict, True
-                return None, False
+                if user_data is None or cur.description is None:
+                    return None, False
+                columns = [desc[0] for desc in cur.description]
+                user_dict = dict(zip(columns, user_data))
+                if 'user_id' in user_dict and isinstance(user_dict['user_id'], uuid.UUID):
+                    user_dict['user_id'] = str(user_dict['user_id'])
+                if 'created_at' in user_dict and isinstance(user_dict['created_at'], datetime):
+                    user_dict['created_at'] = user_dict['created_at'].isoformat()
+                if 'updated_at' in user_dict and isinstance(user_dict['updated_at'], datetime):
+                    user_dict['updated_at'] = user_dict['updated_at'].isoformat()
+                return user_dict, True
     except Psycopg2Error as e:
         return db_operation_failed(e, "read user")
     except Exception as e:

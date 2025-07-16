@@ -44,23 +44,56 @@ def read_exercise_by_name(name):
                 """
                 cur.execute(select_sql, (name,))
                 exercise_data = cur.fetchone()
-                if exercise_data:
-                    columns = [desc[0] for desc in cur.description]
-                    exercise_dict = dict(zip(columns, exercise_data))
+                if exercise_data is None or cur.description is None:
+                    return None, False
+                columns = [desc[0] for desc in cur.description]
+                exercise_dict = dict(zip(columns, exercise_data))
 
+                if 'exercise_id' in exercise_dict and isinstance(exercise_dict['exercise_id'], uuid.UUID):
+                    exercise_dict['exercise_id'] = str(exercise_dict['exercise_id'])
+                if 'user_id' in exercise_dict and isinstance(exercise_dict['user_id'], uuid.UUID):
+                    exercise_dict['user_id'] = str(exercise_dict['user_id'])
+                if 'created_at' in exercise_dict and isinstance(exercise_dict['created_at'], datetime):
+                    exercise_dict['created_at'] = exercise_dict['created_at'].isoformat()
+                return exercise_dict, True
+    except Psycopg2Error as e:
+        return db_operation_failed(e, "read exercise by name")
+    except Exception as e:
+        logger.critical(f"Unexpected error when reading exercise by name: {e}", exc_info=True)
+        return None, False
+
+def get_exercises_by_muscle_group(muscle_group):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                select_sql = """
+                SELECT exercise_id, exercise_name, primary_muscle_group, secondary_muscle_group,
+                       equipment, difficulty, instructions, video_url,
+                       custom, user_id, created_at
+                FROM exercises 
+                WHERE %s = ANY(primary_muscle_group) OR %s = ANY(secondary_muscle_group);
+                """
+                cur.execute(select_sql, (muscle_group, muscle_group))
+                exercises = cur.fetchall()
+                if cur.description is None:
+                    return [], True
+                columns = [desc[0] for desc in cur.description]
+                result = []
+                for row in exercises:
+                    exercise_dict = dict(zip(columns, row))
                     if 'exercise_id' in exercise_dict and isinstance(exercise_dict['exercise_id'], uuid.UUID):
                         exercise_dict['exercise_id'] = str(exercise_dict['exercise_id'])
                     if 'user_id' in exercise_dict and isinstance(exercise_dict['user_id'], uuid.UUID):
                         exercise_dict['user_id'] = str(exercise_dict['user_id'])
                     if 'created_at' in exercise_dict and isinstance(exercise_dict['created_at'], datetime):
                         exercise_dict['created_at'] = exercise_dict['created_at'].isoformat()
-                    return exercise_dict, True
-                return None, False
+                    result.append(exercise_dict)
+                return result, True
     except Psycopg2Error as e:
-        return db_operation_failed(e, "read exercise by name")
+        return db_operation_failed(e, "get exercises by muscle group")
     except Exception as e:
-        logger.critical(f"Unexpected error when reading exercise by name: {e}", exc_info=True)
-        return None, False
+        logger.critical(f"Unexpected error when getting exercises by muscle group: {e}", exc_info=True)
+        return [], False
 
 # No other exercise functions were provided in your initial codebase,
 # so only create and read by name are implemented.
