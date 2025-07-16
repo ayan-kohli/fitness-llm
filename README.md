@@ -13,7 +13,7 @@ FitSense is an AI-powered fitness planning system that uses Retrieval Augmented 
 
 ### 1. Clone the Repository
 ```bash
-git clone <repo-url>
+git clone https://github.com/ayan-kohli/fitness-llm.git
 cd fitness-llm
 ```
 
